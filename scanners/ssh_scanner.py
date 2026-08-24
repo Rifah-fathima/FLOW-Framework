@@ -1,72 +1,77 @@
-import subprocess
-import shutil
+"""
+FLOW Framework
+SSH Scanner
 
+Runs ssh-audit using the common ScannerBase
+execution interface.
+"""
+
+from core.scanner_base import ScannerBase
 from utils.logger import logger
 
 
-def run_ssh_audit(target, port=22):
+class SSHScanner(ScannerBase):
     """
-    Runs ssh-audit against the target.
-
-    Parameters
-    ----------
-    target : str
-        Target hostname or IP address.
-
-    port : int
-        SSH port (default: 22)
-
-    Returns
-    -------
-    str
-        Raw ssh-audit output for parsing.
+    SSH security auditing scanner.
     """
 
-    logger.info(
-        f"Starting SSH Audit on {target}:{port}"
-    )
+    def __init__(self):
+        super().__init__("ssh")
 
-    # ==================================================
-    # SSH-AUDIT AVAILABILITY
-    # ==================================================
+    def scan(self, target, port=22):
+        """
+        Run ssh-audit against the target.
 
-    ssh_audit_path = shutil.which("ssh-audit")
+        Parameters
+        ----------
+        target : str
+            Target hostname or IP address.
 
-    if not ssh_audit_path:
+        port : int
+            SSH port. Default is 22.
 
-        logger.error(
-            "ssh-audit not installed"
+        Returns
+        -------
+        str
+            Raw ssh-audit output for parsing.
+        """
+
+        logger.info(
+            f"Starting SSH Audit on {target}:{port}"
         )
 
-        return (
-            "[FLOW] ssh-audit is not installed.\n"
-            "Install using:\n"
-            "sudo apt install ssh-audit"
-        )
+        # ==================================================
+        # TOOL CHECK
+        # ==================================================
 
-    # ==================================================
-    # COMMAND
-    # ==================================================
+        if not self.tool_exists("ssh-audit"):
 
-    command = [
-        ssh_audit_path,
-        "-p",
-        str(port),
-        target
-    ]
+            logger.error(
+                "ssh-audit not installed"
+            )
 
-    # ==================================================
-    # RUN SSH-AUDIT
-    # ==================================================
+            return (
+                "[FLOW] ssh-audit is not installed.\n"
+                "Install using:\n"
+                "sudo apt install ssh-audit"
+            )
 
-    try:
+        # ==================================================
+        # COMMAND
+        # ==================================================
 
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            timeout=120
-        )
+        command = [
+            "ssh-audit",
+            "-p",
+            str(port),
+            target
+        ]
+
+        # ==================================================
+        # EXECUTE
+        # ==================================================
+
+        result = self.execute(command)
 
         logger.info(
             "SSH Audit Completed"
@@ -76,55 +81,48 @@ def run_ssh_audit(target, port=22):
         # RETURN OUTPUT FOR PARSER
         # ==================================================
 
-        # Prefer stdout
-        if result.stdout.strip():
-            return result.stdout
+        if result["stdout"].strip():
 
-        # Fall back to stderr
-        if result.stderr.strip():
-            return result.stderr
+            return result["stdout"]
+
+        if result["stderr"].strip():
+
+            return result["stderr"]
+
+        # ==================================================
+        # ERROR
+        # ==================================================
+
+        if result["error"]:
+
+            logger.error(
+                f"SSH Audit Error: {result['error']}"
+            )
+
+            return (
+                f"[FLOW] SSH Audit Error: "
+                f"{result['error']}"
+            )
 
         return ""
 
-    # ==================================================
-    # TIMEOUT
-    # ==================================================
 
-    except subprocess.TimeoutExpired:
+# ==================================================
+# BACKWARD-COMPATIBLE FUNCTION
+# ==================================================
 
-        logger.error(
-            "SSH Audit Timed Out"
-        )
+def run_ssh_audit(target, port=22):
+    """
+    Backward-compatible SSH scanner function.
 
-        return (
-            "[FLOW] SSH Audit timed out.\n"
-            "Target may be unreachable or filtering SSH."
-        )
+    Existing FLOW workflow code can continue using:
 
-    # ==================================================
-    # COMMAND NOT FOUND
-    # ==================================================
+        run_ssh_audit(target, port)
+    """
 
-    except FileNotFoundError:
+    scanner = SSHScanner()
 
-        logger.error(
-            "ssh-audit not installed"
-        )
-
-        return (
-            "[FLOW] ssh-audit is not installed.\n"
-            "Install using:\n"
-            "sudo apt install ssh-audit"
-        )
-
-    # ==================================================
-    # GENERAL ERROR
-    # ==================================================
-
-    except Exception as e:
-
-        logger.error(
-            f"SSH Audit Error: {e}"
-        )
-
-        return f"[FLOW] Error: {e}"
+    return scanner.scan(
+        target,
+        port
+    )

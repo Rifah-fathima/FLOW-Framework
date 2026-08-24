@@ -1,38 +1,121 @@
-import subprocess
+"""
+FLOW Framework
+Naabu Scanner
+
+Runs Naabu port discovery using the common
+ScannerBase execution interface.
+"""
+
+from core.scanner_base import ScannerBase
 from utils.logger import logger
 
 
-def run_naabu(target):
+class NaabuScanner(ScannerBase):
     """
-    Runs Naabu against the target and returns raw output.
+    Naabu port discovery scanner.
     """
 
-    logger.info(f"Starting Naabu Scan on {target}")
+    def __init__(self):
+        super().__init__("naabu")
 
-    command = [
-        "naabu",
-        "-host", target,
-        "-silent"
-    ]
+    def scan(self, target):
+        """
+        Run Naabu against the target.
 
-    try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            timeout=120
+        Parameters
+        ----------
+        target : str
+            Target hostname or IP address.
+
+        Returns
+        -------
+        str
+            Raw Naabu output.
+        """
+
+        logger.info(
+            f"Starting Naabu Scan on {target}"
         )
 
-        logger.info("Naabu Scan Completed")
+        # ==================================================
+        # TOOL CHECK
+        # ==================================================
 
-        return result.stdout
+        if not self.tool_exists("naabu"):
 
-    except subprocess.TimeoutExpired:
+            logger.error(
+                "Naabu is not installed"
+            )
 
-        logger.error("Naabu Scan Timed Out")
+            return ""
+
+        # ==================================================
+        # COMMAND
+        # ==================================================
+
+        command = [
+            "naabu",
+            "-host",
+            target,
+            "-silent"
+        ]
+
+        # ==================================================
+        # EXECUTE
+        # ==================================================
+
+        result = self.execute(command)
+
+        # ==================================================
+        # SUCCESS
+        # ==================================================
+
+        if result["success"]:
+
+            logger.info(
+                "Naabu Scan Completed"
+            )
+
+            return result["stdout"]
+
+        # ==================================================
+        # ERROR
+        # ==================================================
+
+        if result["error"]:
+
+            logger.error(
+                f"Naabu Error: {result['error']}"
+            )
+
+        elif result["stderr"]:
+
+            logger.error(
+                f"Naabu Error: {result['stderr'].strip()}"
+            )
+
+        else:
+
+            logger.error(
+                "Naabu Scan Failed"
+            )
+
         return ""
 
-    except Exception as e:
 
-        logger.error(f"Naabu Error: {e}")
-        return ""
+# ==================================================
+# BACKWARD-COMPATIBLE FUNCTION
+# ==================================================
+
+def run_naabu(target):
+    """
+    Backward-compatible Naabu scanner function.
+
+    Existing FLOW workflow code can continue using:
+
+        run_naabu(target)
+    """
+
+    scanner = NaabuScanner()
+
+    return scanner.scan(target)
