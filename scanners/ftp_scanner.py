@@ -1,60 +1,138 @@
-import subprocess
+"""
+FLOW Framework
+FTP Scanner
+
+Runs FTP enumeration using Nmap FTP NSE scripts.
+"""
+
+from core.scanner_base import ScannerBase
 from utils.logger import logger
 
 
-def run_ftp_scan(target):
+class FTPScanner(ScannerBase):
     """
-    Runs FTP Enumeration using Nmap.
+    FTP enumeration scanner.
 
-    Features:
-    - FTP Version Detection
-    - Anonymous Login Check
-    - FTP System Information
-
-    Parameters:
-        target (str): Target IP address or hostname.
-
-    Returns:
-        str: Raw Nmap FTP scan output.
+    Uses Nmap to perform:
+        - FTP version detection
+        - Anonymous FTP login check
+        - FTP system information detection
     """
 
-    logger.info(f"Starting FTP Enumeration on {target}:21")
+    def __init__(self):
+        super().__init__("ftp")
 
-    command = [
-        "nmap",
-        "-Pn",
-        "-sV",
-        "-p21",
-        "--script",
-        "ftp-anon,ftp-syst",
-        target
-    ]
+    # ==================================================
+    # FTP SCAN
+    # ==================================================
 
-    try:
+    def scan(self, target):
+        """
+        Run FTP enumeration against the target.
 
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True
+        Parameters
+        ----------
+        target : str
+            Target IP address or hostname.
+
+        Returns
+        -------
+        str
+            Raw Nmap FTP scan output.
+        """
+
+        logger.info(
+            f"Starting FTP Enumeration on {target}:21"
         )
 
-        if result.returncode != 0:
-            logger.warning(
-                f"Nmap returned exit code {result.returncode}"
+        # ==================================================
+        # TOOL CHECK
+        # ==================================================
+
+        if not self.tool_exists("nmap"):
+
+            logger.error(
+                "Nmap is not installed or not found in PATH."
             )
 
-        logger.info("FTP Enumeration Completed")
+            return "ERROR: Nmap not found."
 
-        return result.stdout + result.stderr
+        # ==================================================
+        # COMMAND
+        # ==================================================
 
-    except FileNotFoundError:
+        command = [
+            "nmap",
+            "-Pn",
+            "-sV",
+            "-p21",
+            "--script",
+            "ftp-anon,ftp-syst",
+            target
+        ]
 
-        logger.error("Nmap is not installed or not found in PATH.")
+        # ==================================================
+        # EXECUTE
+        # ==================================================
 
-        return "ERROR: Nmap not found."
+        result = self.execute(
+            command,
+            timeout=180
+        )
 
-    except Exception as error:
+        # ==================================================
+        # LOG NON-ZERO EXIT
+        # ==================================================
 
-        logger.error(f"FTP Enumeration Failed: {error}")
+        if not result["success"]:
 
-        return str(error)
+            if result["return_code"] != -1:
+
+                logger.warning(
+                    f"Nmap returned exit code "
+                    f"{result['return_code']}"
+                )
+
+            if result["error"]:
+
+                logger.error(
+                    f"FTP Enumeration Error: "
+                    f"{result['error']}"
+                )
+
+        else:
+
+            logger.info(
+                "FTP Enumeration Completed"
+            )
+
+        # ==================================================
+        # RETURN OUTPUT
+        # ==================================================
+
+        # Preserve the old scanner behavior:
+        # stdout + stderr
+        output = (
+            result["stdout"] +
+            result["stderr"]
+        )
+
+        return output
+
+
+# ==================================================
+# BACKWARD-COMPATIBLE FUNCTION
+# ==================================================
+
+def run_ftp_scan(target):
+    """
+    Backward-compatible FTP scanner function.
+
+    Existing FLOW workflow code can continue using:
+
+        run_ftp_scan(target)
+    """
+
+    scanner = FTPScanner()
+
+    return scanner.scan(target)
