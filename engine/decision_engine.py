@@ -33,6 +33,9 @@ def get_next_actions(scan_results):
             if "nikto" not in actions:
                 actions.append("nikto")
 
+            if "whatweb" not in actions:
+                actions.append("whatweb")
+
         # -----------------------------------------
         # HTTPS
         # -----------------------------------------
@@ -56,16 +59,16 @@ def get_next_actions(scan_results):
             if "sslscan" not in actions:
                 actions.append("sslscan")
 
+            if "whatweb" not in actions:
+                actions.append("whatweb")
+
         # -----------------------------------------
         # SSH
         # -----------------------------------------
 
         elif (
             port_number == "22"
-            or service_name in [
-                "ssh",
-                "tcpwrapped"
-            ]
+            or service_name == "ssh"
         ):
 
             if "ssh_enum" not in actions:

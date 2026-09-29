@@ -25,15 +25,24 @@ class WhatWebScanner(ScannerBase):
             print("[ERROR] WhatWeb is not installed.")
             return ""
 
+        # Ensure WhatWeb receives a complete URL.
+        if not target.startswith(("http://", "https://")):
+            target = f"http://{target}"
+
         cmd = ["whatweb", target]
 
         print("Command:", " ".join(cmd))
 
-        result = self.execute(cmd, timeout=180)
+        result = self.execute(
+            cmd,
+            timeout=180
+        )
 
         print("Return code:", result["return_code"])
+
         print("STDOUT:")
         print(result["stdout"])
+
         print("STDERR:")
         print(result["stderr"])
 
@@ -47,5 +56,7 @@ def run_whatweb(target):
     """
     Backward-compatible wrapper used by FLOW workflow.
     """
+
     scanner = WhatWebScanner()
+
     return scanner.scan(target)

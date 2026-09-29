@@ -18,7 +18,7 @@ def main():
 
     print("\n[FLOW] Dependency check passed.")
 
-    target = input("\nEnter Target: ")
+    target = input("\nEnter Target: ").strip()
 
     start_scan(target)
 

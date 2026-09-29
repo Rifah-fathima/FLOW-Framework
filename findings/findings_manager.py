@@ -1,5 +1,7 @@
 import json
 
+from dataclasses import asdict, is_dataclass
+
 
 class FindingsManager:
     """
@@ -104,7 +106,10 @@ class FindingsManager:
 
             for finding in severity_findings:
 
-                print(f"• [{finding['module']}] {finding['title']}")
+                print(
+                    f"• [{finding['module']}] "
+                    f"{finding['title']}"
+                )
 
         print("\n" + "=" * 70)
 
@@ -113,23 +118,53 @@ class FindingsManager:
         print("=" * 70)
 
     # ==================================================
+    # JSON SERIALIZATION HELPER
+    # ==================================================
+
+    @staticmethod
+    def _serialize_object(obj):
+        """
+        Convert dataclass objects such as Finding
+        into JSON-serializable dictionaries.
+        """
+
+        if is_dataclass(obj):
+            return asdict(obj)
+
+        if isinstance(obj, list):
+            return [
+                FindingsManager._serialize_object(item)
+                for item in obj
+            ]
+
+        if isinstance(obj, dict):
+            return {
+                key: FindingsManager._serialize_object(value)
+                for key, value in obj.items()
+            }
+
+        return obj
+
+    # ==================================================
     # EXPORT JSON REPORT
     # ==================================================
 
     def save_json(self, filename="reports/report.json"):
 
         report = {
-
             "target": self.target,
-
-            "results": self.results,
-
-            "findings": self.findings
-
+            "results": self._serialize_object(self.results),
+            "findings": self._serialize_object(self.findings)
         }
 
         with open(filename, "w") as file:
 
-            json.dump(report, file, indent=4)
+            json.dump(
+                report,
+                file,
+                indent=4
+            )
 
-        print(f"\n[FLOW] Report saved -> {filename}")
+        print(
+            f"\n[FLOW] Report saved -> {filename}"
+        )
