@@ -79,10 +79,12 @@ def get_next_actions(scan_results):
         # -----------------------------------------
 
         elif (
-            port_number == "21"
-            or service_name.startswith("ftp")
+            service_name.startswith("ftp")
+            or (
+               port_number == "21"
+               and service_name in ["ftp", "unknown", ""]
+            )
         ):
-
             if "ftp_enum" not in actions:
                 actions.append("ftp_enum")
 
