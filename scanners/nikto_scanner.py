@@ -1,3 +1,4 @@
+
 """
 FLOW Framework
 Nikto Scanner
@@ -28,29 +29,23 @@ class NiktoScanner(ScannerBase):
             Target hostname or IP address.
 
         quick : bool
-            If True, run a maximum 3-minute scan.
-            If False, run a full scan.
+            If True, use a 1-minute Nikto scan limit.
+            If False, run without Nikto's internal time limit.
 
         Returns
         -------
         str or None
-            Raw Nikto output.
+            Raw Nikto output, or None if execution fails.
         """
 
-        logger.info(
-            f"Starting Nikto Scan on {target}"
-        )
+        logger.info(f"Starting Nikto Scan on {target}")
 
         # ==================================================
         # TOOL CHECK
         # ==================================================
 
         if not self.tool_exists("nikto"):
-
-            logger.error(
-                "Nikto is not installed"
-            )
-
+            logger.error("Nikto is not installed")
             return None
 
         # ==================================================
@@ -58,77 +53,73 @@ class NiktoScanner(ScannerBase):
         # ==================================================
 
         if quick:
-
             logger.info(
-                "Nikto quick scan enabled "
-                "(Max 3 minutes)."
+                "Nikto quick scan enabled (Max 1 minute)."
             )
 
             command = [
                 "nikto",
-                "-h",
-                target,
-                "-maxtime",
-                "3m"
+                "-h", target,
+                "-maxtime", "1m"
             ]
+
+            execution_timeout = 90
 
         else:
-
-            logger.info(
-                "Nikto full scan enabled."
-            )
+            logger.info("Nikto full scan enabled.")
 
             command = [
                 "nikto",
-                "-h",
-                target
+                "-h", target
             ]
+
+            execution_timeout = 600
 
         # ==================================================
         # EXECUTE
         # ==================================================
 
-        result = self.execute(command)
+        result = self.execute(
+            command,
+            timeout=execution_timeout
+        )
+
+        # ==================================================
+        # HANDLE TIMEOUT / ERROR
+        # ==================================================
+
+        if result["error"]:
+            logger.error(
+                f"Nikto execution error: {result['error']}"
+            )
+
+            # Preserve any output produced before a timeout.
+            if result["stdout"].strip():
+                return result["stdout"]
+
+            return None
 
         # ==================================================
         # SUCCESS
         # ==================================================
 
         if result["success"]:
-
-            logger.info(
-                "Nikto Scan Completed"
-            )
-
+            logger.info("Nikto Scan Completed")
             return result["stdout"]
 
         # ==================================================
-        # ERROR
+        # NON-ZERO EXIT
         # ==================================================
 
-        if result["error"]:
+        logger.warning(
+            f"Nikto exited with code {result['return_code']}"
+        )
 
-            logger.error(
-                f"Nikto Error: {result['error']}"
-            )
+        if result["stderr"].strip():
+            logger.warning(result["stderr"].strip())
 
-        elif result["stderr"]:
-
-            logger.error(
-                f"Nikto Error: "
-                f"{result['stderr'].strip()}"
-            )
-
-        else:
-
-            logger.error(
-                "Nikto Scan Failed"
-            )
-
-        # Return stdout if Nikto produced useful
-        # output despite a non-zero return code.
+        # Preserve useful output even if Nikto exits non-zero.
         if result["stdout"].strip():
-
             return result["stdout"]
 
         return None
@@ -142,8 +133,7 @@ def run_nikto(target, quick=True):
     """
     Backward-compatible Nikto scanner function.
 
-    Existing FLOW workflow code can continue using:
-
+    Examples:
         run_nikto(target)
         run_nikto(target, quick=False)
     """
