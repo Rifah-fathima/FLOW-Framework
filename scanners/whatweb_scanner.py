@@ -29,7 +29,7 @@ class WhatWebScanner(ScannerBase):
         if not target.startswith(("http://", "https://")):
             target = f"http://{target}"
 
-        cmd = ["whatweb", target]
+        cmd = ["whatweb", "-a", "1", "--no-errors", target]
 
         print("Command:", " ".join(cmd))
 
