@@ -147,4 +147,9 @@ def build_html_report(target, results, findings, stats):
         ),
     )
 
+    html = html.replace(
+        "{{AI_ASSESSMENT}}",
+        """<p>AI-generated assessment is currently unavailable. Review the Security Findings and Recommendations sections for evidence-based results from the scanning modules. All findings require manual validation before remediation decisions are made.</p>""",
+    )
+
     return html
