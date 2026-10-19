@@ -33,7 +33,7 @@ TEMPLATE_FILE = os.path.join(
 )
 
 
-def build_html_report(target, results, findings, stats):
+def build_html_report(target, results, findings, stats, ai_assessment=None):
     """
     Build the final HTML report.
 
@@ -147,9 +147,13 @@ def build_html_report(target, results, findings, stats):
         ),
     )
 
-    html = html.replace(
-        "{{AI_ASSESSMENT}}",
-        """<p>AI-generated assessment is currently unavailable. Review the Security Findings and Recommendations sections for evidence-based results from the scanning modules. All findings require manual validation before remediation decisions are made.</p>""",
-    )
+    fallback = "<p>AI-generated assessment is currently unavailable. Review the Security Findings and Recommendations sections for evidence-based results from the scanning modules. All findings require manual validation before remediation decisions are made.</p>"
+    assessment_html = fallback
+
+    if ai_assessment:
+        from html import escape
+        assessment_html = "<pre>" + escape(ai_assessment) + "</pre>"
+
+    html = html.replace("{{AI_ASSESSMENT}}", assessment_html)
 
     return html

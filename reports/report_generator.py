@@ -18,6 +18,9 @@ from reports.report_builder import (
     build_html_report,
 )
 
+from config.settings import ENABLE_AI
+from ai.ollama_client import generate_security_assessment
+
 # ==========================================================
 # Paths
 # ==========================================================
@@ -78,6 +81,15 @@ def generate_html_report():
     results = report.get("results", {})
     findings = report.get("findings", [])
 
+    ai_assessment = None
+    if ENABLE_AI:
+        try:
+            assessment = generate_security_assessment(target, results, findings)
+            if not assessment.startswith("AI Error:"):
+                ai_assessment = assessment
+        except Exception as exc:
+            print(f"[FLOW] AI assessment unavailable: {exc}")
+
     # Calculate statistics
     stats = calculate_dashboard_statistics(
         results,
@@ -90,6 +102,7 @@ def generate_html_report():
         results=results,
         findings=findings,
         stats=stats,
+        ai_assessment=ai_assessment,
     )
 
     # Save HTML report
