@@ -10,7 +10,7 @@ OLLAMA_MODEL = "llama3.2"
 # AI Configuration
 # ==============================
 
-ENABLE_AI = True
+ENABLE_AI = False
 
 # ==============================
 # Scanner Configuration
